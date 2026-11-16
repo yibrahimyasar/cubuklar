@@ -1,4 +1,4 @@
-const CACHE = 'cubuklar-v2';
+const CACHE = 'cubuklar-v3';
 const ASSETS = [
   './',
   './index.html',
