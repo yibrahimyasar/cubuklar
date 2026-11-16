@@ -199,8 +199,7 @@
 
 <script>
   const N = 6;
-  const LENGTHS = [2, 2, 2, 3, 3, 3, 4, 4, 4, 5];
-  const FIVE_ID = 9;                 // 5'lik çubuğun id'si
+  const LENGTHS = [2, 2, 2, 3, 3, 3, 4, 4, 4];
   const NAMES = ['Oyuncu 1', 'Oyuncu 2'];
   const COLORS = ['p0', 'p1'];
 
@@ -225,18 +224,13 @@
       prev: null,     // tahtadaki önizleme konumu {r, c}
       over: false,
       winner: -1,
-      msg: "Oyuncu 1, 5'li çubuğunu tahtaya sürükle."
+      msg: 'Oyuncu 1, bir çubuğu tahtaya sürükle.' 
     };
     render();
   }
 
-  // Açılış: iki oyuncu da önce 5'lik çubuğunu yerleştirir
-  function isOpening() {
-    return !S.pieces[0][FIVE_ID].used || !S.pieces[1][FIVE_ID].used;
-  }
-
   function availablePieces(p) {
-    return S.pieces[p].filter(pc => !pc.used && (!isOpening() || pc.len === 5));
+    return S.pieces[p].filter(pc => !pc.used);
   }
 
   function cellsFor(r, c, dir, len) {
@@ -336,9 +330,7 @@
     const other = 1 - S.cur;
     if (canMove(other)) {
       S.cur = other;
-      S.msg = isOpening()
-        ? `${NAMES[other]}, 5'li çubuğunu tahtaya sürükle.`
-        : `Sıra ${NAMES[other]}'de.`;
+      S.msg = `Sıra ${NAMES[other]}'de.`;
     } else if (canMove(S.cur)) {
       S.msg = `${NAMES[other]} hamle yapamıyor. ${NAMES[S.cur]} devam ediyor.`;
     } else {
