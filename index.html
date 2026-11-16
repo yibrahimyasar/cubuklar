@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#F3EBDD">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="description" content="İki kişilik çubuk yerleştirme oyunu.">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,13 +23,13 @@
     --line: #D8C9AE;
     --ink: #1F2A36;
     --muted: #7A6E5C;
-    --p0: #D9573B;   /* Oyuncu 1: kiremit */
-    --p1: #2A7F7A;   /* Oyuncu 2: çam yeşili */
+    --p0: #D9573B;
+    --p1: #2A7F7A;
     --ok: #4F8F4A;
     --bad: #B3403A;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; }
+  html, body { margin: 0; height: 100%; }
   body {
     min-height: 100vh;
     min-height: 100dvh;
@@ -39,29 +39,80 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 18px);
+    justify-content: space-between;
+    gap: 8px;
+    padding: calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 8px);
     user-select: none;
-    touch-action: manipulation;
+    -webkit-user-select: none;
+    overflow: hidden;
   }
-  header, .counts, .msg, .hint { width: 100%; max-width: 400px; }
-  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  h1 {
-    font-family: Fraunces, Georgia, serif;
-    font-weight: 700;
-    font-size: 30px;
-    letter-spacing: -0.02em;
-    margin: 0;
+
+  /* Oyuncu panelleri: alttaki Oyuncu 1, üstteki Oyuncu 2 (ters) */
+  .panel {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px 12px;
+    border-radius: 16px;
+    transition: background .2s;
   }
-  .turn { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; }
+  .panel[data-p="0"] { --pc: var(--p0); }
+  .panel[data-p="1"] { --pc: var(--p1); }
+  .panel.flip { transform: rotate(180deg); }
+  .panel.active { background: var(--cell); box-shadow: inset 0 5px 0 var(--pc); }
+  .pinfo { width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .who { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .left { color: var(--muted); }
   .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
   .p0 { background: var(--p0); }
   .p1 { background: var(--p1); }
-  .counts { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
-  .msg { min-height: 22px; font-size: 15px; text-align: center; }
+  .tray {
+    min-height: 52px;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+  }
+  .actions { display: flex; gap: 10px; }
+  .cover {
+    display: none;
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background: rgba(243, 235, 221, 0.95);
+    align-items: center;
+    justify-content: center;
+    font-family: Fraunces, Georgia, serif;
+    font-size: 18px;
+    color: var(--muted);
+    z-index: 2;
+  }
+  .panel.inactive .cover { display: flex; }
 
+  .piece {
+    display: flex;
+    gap: 3px;
+    padding: 6px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    cursor: grab;
+    touch-action: none;
+  }
+  .piece.sel { border-color: var(--ink); background: rgba(255, 255, 255, 0.6); }
+  .seg { width: 24px; height: 24px; border-radius: 6px; }
+
+  /* Orta alan: mesaj, tahta, genel düğmeler */
+  .center { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+  .msg { min-height: 44px; max-width: 380px; text-align: center; font-size: 15px; line-height: 1.4; }
   .board {
-    width: min(92vw, 400px);
+    width: max(240px, min(86vw, 340px, calc(100dvh - 480px)));
     aspect-ratio: 1;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -70,46 +121,33 @@
     padding: 8px;
     background: var(--line);
     border-radius: 16px;
+    touch-action: none;
   }
-  .cell {
-    background: var(--cell);
-    border-radius: 8px;
-    cursor: pointer;
-  }
+  .cell { background: var(--cell); border-radius: 8px; cursor: pointer; }
   .cell.filled { cursor: default; }
   .cell.filled.p0 { background: var(--p0); }
   .cell.filled.p1 { background: var(--p1); }
   .cell.ghost-ok  { box-shadow: inset 0 0 0 999px rgba(79, 143, 74, 0.38); }
   .cell.ghost-bad { box-shadow: inset 0 0 0 999px rgba(179, 64, 58, 0.38); }
 
-  .tray-title { font-size: 14px; color: var(--muted); }
-  .tray {
-    min-height: 56px;
-    width: 100%;
-    max-width: 400px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    align-items: center;
-  }
-  .piece {
+  .ghost-piece {
+    position: fixed;
     display: flex;
     gap: 3px;
-    padding: 6px;
-    border: 2px solid transparent;
-    border-radius: 10px;
-    background: transparent;
-    cursor: pointer;
+    padding: 4px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+    z-index: 20;
+    transform: translate(-50%, -50%);
   }
-  .piece.sel { border-color: var(--ink); background: rgba(255, 255, 255, 0.55); }
-  .seg { width: 24px; height: 24px; border-radius: 6px; }
+  .ghost-piece.vert { flex-direction: column; }
+  .ghost-piece .seg { width: 26px; height: 26px; }
 
-  .controls { display: flex; gap: 10px; }
   .btn {
     font: inherit;
     font-size: 15px;
-    padding: 10px 18px;
+    padding: 9px 16px;
     border-radius: 999px;
     border: 1.5px solid var(--ink);
     background: transparent;
@@ -117,85 +155,96 @@
     cursor: pointer;
   }
   .btn.primary { background: var(--ink); color: var(--paper); }
-  .btn:focus-visible, .piece:focus-visible, .cell:focus-visible {
-    outline: 3px solid var(--ink);
-    outline-offset: 2px;
-  }
   .btn.install { border-color: var(--p1); color: var(--p1); }
-  .hint { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; }
+  .btn:disabled { opacity: 0.35; cursor: default; }
+  .btn:focus-visible, .piece:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>Çubuklar</h1>
-  <div class="turn" id="turn"></div>
-</header>
+<section class="panel flip" data-p="1">
+  <div class="pinfo">
+    <span class="who"><span class="dot p1"></span><span class="name">Oyuncu 2</span></span>
+    <span class="left"></span>
+  </div>
+  <div class="tray"></div>
+  <div class="actions">
+    <button class="btn rot">Döndür (G)</button>
+    <button class="btn primary ok">Onayla</button>
+  </div>
+  <div class="cover">Sıra rakipte</div>
+</section>
 
-<div class="counts" id="counts"></div>
-<div class="msg" id="msg" role="status" aria-live="polite"></div>
-
-<div class="board" id="board" role="grid" aria-label="Oyun tahtası"></div>
-
-<div class="tray-title" id="trayTitle"></div>
-<div class="tray" id="tray"></div>
-
-<div class="controls">
-  <button class="btn" id="rot">Döndür (G)</button>
-  <button class="btn primary" id="new">Yeni oyun</button>
+<div class="center">
+  <div class="msg" id="msg" role="status" aria-live="polite"></div>
+  <div class="board" id="board" role="grid" aria-label="Oyun tahtası"></div>
+  <div class="actions">
+    <button class="btn" id="new">Yeni oyun</button>
+    <button class="btn install" id="install" hidden>Uygulamayı yükle</button>
+  </div>
 </div>
-<div class="controls">
-  <button class="btn install" id="install" hidden>Uygulamayı yükle</button>
-</div>
 
-<p class="hint">
-  Bir çubuk seç, tahtada bir kareye dokun, aynı kareye tekrar dokunarak yerleştir.
-  Bilgisayarda: G döndürür, ok tuşları konumu değiştirir, Enter yerleştirir.
-  Bir satır ya da sütunu tamamen doldurursan kazanırsın.
-</p>
+<section class="panel" data-p="0">
+  <div class="pinfo">
+    <span class="who"><span class="dot p0"></span><span class="name">Oyuncu 1</span></span>
+    <span class="left"></span>
+  </div>
+  <div class="tray"></div>
+  <div class="actions">
+    <button class="btn rot">Döndür (G)</button>
+    <button class="btn primary ok">Onayla</button>
+  </div>
+  <div class="cover">Sıra rakipte</div>
+</section>
 
 <script>
   const N = 6;
   const LENGTHS = [2, 2, 2, 3, 3, 3, 4, 4, 4, 5];
+  const FIVE_ID = 9;                 // 5'lik çubuğun id'si
   const NAMES = ['Oyuncu 1', 'Oyuncu 2'];
   const COLORS = ['p0', 'p1'];
 
   const boardEl = document.getElementById('board');
-  const trayEl = document.getElementById('tray');
-  const trayTitleEl = document.getElementById('trayTitle');
-  const turnEl = document.getElementById('turn');
-  const countsEl = document.getElementById('counts');
   const msgEl = document.getElementById('msg');
-  const rotBtn = document.getElementById('rot');
-  const newBtn = document.getElementById('new');
+  const panels = [
+    document.querySelector('.panel[data-p="0"]'),
+    document.querySelector('.panel[data-p="1"]')
+  ];
 
   let S;
+  let drag = null;
+  let ghostEl = null;
 
   function newGame() {
     S = {
       board: Array.from({ length: N }, () => Array(N).fill(-1)),
       pieces: [0, 1].map(() => LENGTHS.map((len, id) => ({ id, len, used: false }))),
       cur: 0,
-      sel: null,     // seçili çubuğun id'si (cur oyuncunun listesinde)
-      dir: 'h',      // 'h' yatay, 'v' dikey
-      prev: null,    // önizleme konumu {r, c}
+      sel: null,      // seçili çubuğun id'si
+      dir: 'h',       // 'h' yatay, 'v' dikey
+      prev: null,     // tahtadaki önizleme konumu {r, c}
       over: false,
       winner: -1,
-      msg: 'Oyuncu 1 başlıyor. Bir çubuk seç.'
+      msg: "Oyuncu 1, 5'li çubuğunu tahtaya sürükle."
     };
     render();
   }
 
-  // Çubuğun (r,c) başlangıcından itibaren kapladığı hücreler (tahta dışı olabilir)
+  // Açılış: iki oyuncu da önce 5'lik çubuğunu yerleştirir
+  function isOpening() {
+    return !S.pieces[0][FIVE_ID].used || !S.pieces[1][FIVE_ID].used;
+  }
+
+  function availablePieces(p) {
+    return S.pieces[p].filter(pc => !pc.used && (!isOpening() || pc.len === 5));
+  }
+
   function cellsFor(r, c, dir, len) {
     const out = [];
-    for (let k = 0; k < len; k++) {
-      out.push(dir === 'h' ? [r, c + k] : [r + k, c]);
-    }
+    for (let k = 0; k < len; k++) out.push(dir === 'h' ? [r, c + k] : [r + k, c]);
     return out;
   }
 
-  // Sığıyorsa hücre listesini, sığmıyorsa null döndürür
   function fits(r, c, dir, len) {
     const cells = cellsFor(r, c, dir, len);
     for (const [rr, cc] of cells) {
@@ -214,7 +263,7 @@
   }
 
   function canMove(p) {
-    return S.pieces[p].some(pc => !pc.used && anyFit(pc.len));
+    return availablePieces(p).some(pc => anyFit(pc.len));
   }
 
   function fullLineExists() {
@@ -225,13 +274,48 @@
     return false;
   }
 
+  // Çubuk tahtanın dışına taşmayacak şekilde başlangıç noktasını sınırlar
+  function clampAnchor(r, c, dir, len) {
+    const maxR = dir === 'v' ? N - len : N - 1;
+    const maxC = dir === 'h' ? N - len : N - 1;
+    return {
+      r: Math.min(Math.max(0, r), maxR),
+      c: Math.min(Math.max(0, c), maxC)
+    };
+  }
+
+  function selectedLen() {
+    return S.pieces[S.cur][S.sel].len;
+  }
+
+  function rotate() {
+    if (S.over) return;
+    S.dir = S.dir === 'h' ? 'v' : 'h';
+    if (S.prev && S.sel !== null) {
+      S.prev = clampAnchor(S.prev.r, S.prev.c, S.dir, selectedLen());
+    }
+    render();
+  }
+
+  function confirmPlace() {
+    if (S.over) return;
+    if (S.sel === null) {
+      S.msg = 'Önce bir çubuk seç ve tahtaya sürükle.';
+      return render();
+    }
+    if (!S.prev) {
+      S.msg = 'Çubuğu tahtaya sürükleyip konumunu belirle.';
+      return render();
+    }
+    place(S.prev.r, S.prev.c);
+  }
+
   function place(r, c) {
     const pc = S.pieces[S.cur][S.sel];
     const cells = fits(r, c, S.dir, pc.len);
     if (!cells) {
       S.msg = 'Çubuk buraya sığmıyor.';
-      render();
-      return;
+      return render();
     }
     cells.forEach(([rr, cc]) => { S.board[rr][cc] = S.cur; });
     pc.used = true;
@@ -252,7 +336,9 @@
     const other = 1 - S.cur;
     if (canMove(other)) {
       S.cur = other;
-      S.msg = `Sıra ${NAMES[other]}'de.`;
+      S.msg = isOpening()
+        ? `${NAMES[other]}, 5'li çubuğunu tahtaya sürükle.`
+        : `Sıra ${NAMES[other]}'de.`;
     } else if (canMove(S.cur)) {
       S.msg = `${NAMES[other]} hamle yapamıyor. ${NAMES[S.cur]} devam ediyor.`;
     } else {
@@ -262,109 +348,161 @@
     }
   }
 
-  function tapCell(r, c) {
-    if (S.over) return;
-    if (S.sel === null) {
-      S.msg = 'Önce tepsiden bir çubuk seç.';
-      render();
-      return;
-    }
-    if (S.prev && S.prev.r === r && S.prev.c === c) {
-      place(r, c);
-      return;
-    }
-    S.prev = { r, c };
-    S.msg = 'Yerleştirmek için aynı kareye tekrar dokun.';
+  // ---- Sürükleme ----
+
+  function startTrayDrag(e, pc) {
+    if (S.over || e.button > 0) return;
+    e.preventDefault();
+    S.sel = pc.id;
+    S.prev = null;
+    drag = { src: 'tray' };
+    beginDrag(e);
     render();
   }
 
-  function tapPiece(id) {
-    if (S.over) return;
-    const pc = S.pieces[S.cur][id];
-    if (pc.used) return;
-    if (S.sel === id) {
-      S.sel = null;
-      S.prev = null;
-      S.msg = 'Çubuk seçimi kaldırıldı.';
+  function startBoardDrag(e) {
+    if (S.over || S.sel === null || !S.prev) return;
+    e.preventDefault();
+    drag = { src: 'board' };
+    beginDrag(e);
+  }
+
+  function beginDrag(e) {
+    const len = selectedLen();
+    ghostEl = document.createElement('div');
+    ghostEl.className = 'ghost-piece' + (S.dir === 'v' ? ' vert' : '');
+    for (let i = 0; i < len; i++) {
+      const s = document.createElement('span');
+      s.className = 'seg ' + COLORS[S.cur];
+      ghostEl.appendChild(s);
+    }
+    document.body.appendChild(ghostEl);
+    moveGhost(e.clientX, e.clientY);
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+  }
+
+  function moveGhost(x, y) {
+    if (!ghostEl) return;
+    ghostEl.style.left = x + 'px';
+    ghostEl.style.top = (y - 70) + 'px';   // parmağın biraz üstünde görünsün
+    ghostEl.classList.toggle('vert', S.dir === 'v');
+  }
+
+  function cellAt(x, y) {
+    const el = document.elementFromPoint(x, y);
+    const cell = el && el.closest && el.closest('.cell');
+    if (!cell || !boardEl.contains(cell)) return null;
+    return { r: +cell.dataset.r, c: +cell.dataset.c };
+  }
+
+  function onDragMove(e) {
+    moveGhost(e.clientX, e.clientY);
+    const t = cellAt(e.clientX, e.clientY);
+    if (t) S.prev = clampAnchor(t.r, t.c, S.dir, selectedLen());
+    render();
+  }
+
+  function onDragEnd(e) {
+    window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('pointerup', onDragEnd);
+    window.removeEventListener('pointercancel', onDragEnd);
+    if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+
+    const t = cellAt(e.clientX, e.clientY);
+    if (t) {
+      S.prev = clampAnchor(t.r, t.c, S.dir, selectedLen());
+      S.msg = "Konumu kontrol et, uygunsa 'Onayla'ya bas.";
     } else {
-      S.sel = id;
       S.prev = null;
-      S.msg = `${pc.len} kareli çubuk seçildi. Tahtada bir kareye dokun.`;
+      S.msg = 'Çubuğu tahtanın üzerine bırakmalısın.';
     }
+    drag = null;
     render();
   }
 
-  function rotate() {
-    S.dir = S.dir === 'h' ? 'v' : 'h';
-    render();
+  function isPreviewCell(r, c) {
+    if (!S.prev || S.sel === null) return false;
+    return cellsFor(S.prev.r, S.prev.c, S.dir, selectedLen()).some(([rr, cc]) => rr === r && cc === c);
   }
+
+  // ---- Çizim ----
 
   function ghostMap() {
     const map = {};
     if (S.over || S.sel === null || !S.prev) return map;
-    const pc = S.pieces[S.cur][S.sel];
-    const ok = !!fits(S.prev.r, S.prev.c, S.dir, pc.len);
-    for (const [rr, cc] of cellsFor(S.prev.r, S.prev.c, S.dir, pc.len)) {
-      if (rr >= 0 && rr < N && cc >= 0 && cc < N) {
-        map[rr * N + cc] = ok ? 'ok' : 'bad';
-      }
+    const ok = !!fits(S.prev.r, S.prev.c, S.dir, selectedLen());
+    for (const [rr, cc] of cellsFor(S.prev.r, S.prev.c, S.dir, selectedLen())) {
+      if (rr >= 0 && rr < N && cc >= 0 && cc < N) map[rr * N + cc] = ok ? 'ok' : 'bad';
     }
     return map;
   }
 
-  function render() {
-    // Tahta
+  function renderBoard() {
     const gm = ghostMap();
     boardEl.innerHTML = '';
     for (let r = 0; r < N; r++) {
       for (let c = 0; c < N; c++) {
         const el = document.createElement('div');
         el.className = 'cell';
-        el.setAttribute('role', 'gridcell');
+        el.dataset.r = r;
+        el.dataset.c = c;
         const owner = S.board[r][c];
         if (owner >= 0) el.classList.add('filled', COLORS[owner]);
         const g = gm[r * N + c];
         if (g) el.classList.add('ghost-' + g);
-        el.addEventListener('click', () => tapCell(r, c));
+        el.addEventListener('pointerdown', e => {
+          if (isPreviewCell(r, c)) startBoardDrag(e);
+        });
         boardEl.appendChild(el);
       }
     }
-
-    // Sıra ve sayaçlar
-    if (S.over) {
-      turnEl.textContent = 'Oyun bitti';
-    } else {
-      turnEl.innerHTML = `<span class="dot ${COLORS[S.cur]}"></span>${NAMES[S.cur]}`;
-    }
-    const left = S.pieces.map(ps => ps.filter(p => !p.used).length);
-    countsEl.innerHTML = `<span>${NAMES[0]}: ${left[0]} çubuk</span><span>${NAMES[1]}: ${left[1]} çubuk</span>`;
-    msgEl.textContent = S.msg;
-
-    // Tepsi (yalnızca sırası olan oyuncunun çubukları)
-    trayEl.innerHTML = '';
-    if (S.over) {
-      trayTitleEl.textContent = '';
-    } else {
-      trayTitleEl.textContent = `${NAMES[S.cur]} için çubuklar`;
-      for (const pc of S.pieces[S.cur]) {
-        if (pc.used) continue;
-        const btn = document.createElement('button');
-        btn.className = 'piece' + (S.sel === pc.id ? ' sel' : '');
-        btn.setAttribute('aria-label', `${pc.len} kareli çubuk`);
-        for (let i = 0; i < pc.len; i++) {
-          const seg = document.createElement('span');
-          seg.className = 'seg ' + COLORS[S.cur];
-          btn.appendChild(seg);
-        }
-        btn.addEventListener('click', () => tapPiece(pc.id));
-        trayEl.appendChild(btn);
-      }
-    }
-
-    rotBtn.textContent = `Döndür (G) · ${S.dir === 'h' ? 'Yatay' : 'Dikey'}`;
   }
 
-  // Klavye: G döndürür, ok tuşları konumu taşır, Enter yerleştirir, Esc iptal eder
+  function renderPanels() {
+    for (let p = 0; p < 2; p++) {
+      const el = panels[p];
+      const active = !S.over && S.cur === p;
+      el.classList.toggle('active', active);
+      el.classList.toggle('inactive', !active);
+      el.querySelector('.left').textContent =
+        `${S.pieces[p].filter(pc => !pc.used).length} çubuk kaldı`;
+      el.querySelector('.cover').textContent = S.over ? 'Oyun bitti' : 'Sıra rakipte';
+
+      const tray = el.querySelector('.tray');
+      tray.innerHTML = '';
+      if (active) {
+        for (const pc of availablePieces(p)) {
+          const btn = document.createElement('button');
+          btn.className = 'piece' + (S.sel === pc.id ? ' sel' : '');
+          btn.setAttribute('aria-label', `${pc.len} kareli çubuk`);
+          for (let i = 0; i < pc.len; i++) {
+            const seg = document.createElement('span');
+            seg.className = 'seg ' + COLORS[p];
+            btn.appendChild(seg);
+          }
+          btn.addEventListener('pointerdown', e => startTrayDrag(e, pc));
+          tray.appendChild(btn);
+        }
+      }
+
+      const rot = el.querySelector('.rot');
+      rot.textContent = `Döndür (G) · ${S.dir === 'h' ? 'Yatay' : 'Dikey'}`;
+      rot.disabled = !active;
+
+      const ok = el.querySelector('.ok');
+      ok.disabled = !active || !S.prev;
+    }
+  }
+
+  function render() {
+    renderBoard();
+    renderPanels();
+    msgEl.textContent = S.msg;
+  }
+
+  // ---- Klavye (bilgisayar için) ----
   document.addEventListener('keydown', e => {
     if (S.over) return;
     const k = e.key.toLowerCase();
@@ -377,30 +515,33 @@
       render();
     } else if (S.sel !== null && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
       e.preventDefault();
+      const len = selectedLen();
       if (!S.prev) S.prev = { r: 0, c: 0 };
-      const len = S.pieces[S.cur][S.sel].len;
-      const maxR = S.dir === 'v' ? N - len : N - 1;
-      const maxC = S.dir === 'h' ? N - len : N - 1;
-      if (k === 'arrowup') S.prev.r = Math.max(0, S.prev.r - 1);
-      if (k === 'arrowdown') S.prev.r = Math.min(maxR, S.prev.r + 1);
-      if (k === 'arrowleft') S.prev.c = Math.max(0, S.prev.c - 1);
-      if (k === 'arrowright') S.prev.c = Math.min(maxC, S.prev.c + 1);
+      if (k === 'arrowup') S.prev.r--;
+      if (k === 'arrowdown') S.prev.r++;
+      if (k === 'arrowleft') S.prev.c--;
+      if (k === 'arrowright') S.prev.c++;
+      S.prev = clampAnchor(S.prev.r, S.prev.c, S.dir, len);
       render();
-    } else if (k === 'enter' && S.sel !== null && S.prev) {
+    } else if (k === 'enter' && S.sel !== null) {
       e.preventDefault();
-      place(S.prev.r, S.prev.c);
+      confirmPlace();
     }
   });
 
-  rotBtn.addEventListener('click', rotate);
-  newBtn.addEventListener('click', () => {
-    if (!S.over && S.pieces.some(ps => ps.some(p => p.used))) {
-      if (!confirm('Mevcut oyun silinsin mi?')) return;
-    }
+  // ---- Düğmeler ----
+  panels.forEach(el => {
+    el.querySelector('.rot').addEventListener('click', rotate);
+    el.querySelector('.ok').addEventListener('click', confirmPlace);
+  });
+
+  document.getElementById('new').addEventListener('click', () => {
+    const started = S.pieces.some(ps => ps.some(p => p.used));
+    if (!S.over && started && !confirm('Mevcut oyun silinsin mi?')) return;
     newGame();
   });
 
-  // Android Chrome yükleme isteği
+  // ---- Yükleme (Android Chrome) ----
   const installBtn = document.getElementById('install');
   const isInstalled = () =>
     window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
