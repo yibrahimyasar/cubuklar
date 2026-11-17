@@ -31,8 +31,8 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; }
   body {
-    min-height: 100vh;
-    min-height: 100dvh;
+    height: 100vh;
+    height: var(--vh, 100dvh);
     background: var(--paper);
     color: var(--ink);
     font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -41,7 +41,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 8px);
+    padding: calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 28px);
     user-select: none;
     -webkit-user-select: none;
     overflow: hidden;
@@ -112,7 +112,7 @@
   .center { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
   .msg { min-height: 44px; max-width: 380px; text-align: center; font-size: 15px; line-height: 1.4; }
   .board {
-    width: max(240px, min(86vw, 340px, calc(100dvh - 480px)));
+    width: max(240px, min(86vw, 340px, calc(var(--vh, 100dvh) - 480px)));
     aspect-ratio: 1;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -213,6 +213,15 @@
   let S;
   let drag = null;
   let ghostEl = null;
+
+  // Tarayıcı çubukları görünür alanı daraltır; gerçek görünür yüksekliği kullan
+  function setVH() {
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--vh', h + 'px');
+  }
+  setVH();
+  window.addEventListener('resize', setVH);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', setVH);
 
   function newGame() {
     S = {
@@ -378,7 +387,7 @@
   function moveGhost(x, y) {
     if (!ghostEl) return;
     ghostEl.style.left = x + 'px';
-    ghostEl.style.top = (y - 70) + 'px';   // parmağın biraz üstünde görünsün
+    ghostEl.style.top = y + 'px';
     ghostEl.classList.toggle('vert', S.dir === 'v');
   }
 
@@ -389,10 +398,20 @@
     return { r: +cell.dataset.r, c: +cell.dataset.c };
   }
 
+  // Simgenin ortasının denk geldiği kareden başlangıç noktasını hesaplar
+  function anchorAt(x, y) {
+    const t = cellAt(x, y);
+    if (!t) return null;
+    const half = Math.floor(selectedLen() / 2);
+    let r = t.r, c = t.c;
+    if (S.dir === 'h') c -= half; else r -= half;
+    return clampAnchor(r, c, S.dir, selectedLen());
+  }
+
   function onDragMove(e) {
     moveGhost(e.clientX, e.clientY);
-    const t = cellAt(e.clientX, e.clientY);
-    if (t) S.prev = clampAnchor(t.r, t.c, S.dir, selectedLen());
+    const a = anchorAt(e.clientX, e.clientY);
+    if (a) S.prev = a;
     render();
   }
 
@@ -402,9 +421,9 @@
     window.removeEventListener('pointercancel', onDragEnd);
     if (ghostEl) { ghostEl.remove(); ghostEl = null; }
 
-    const t = cellAt(e.clientX, e.clientY);
-    if (t) {
-      S.prev = clampAnchor(t.r, t.c, S.dir, selectedLen());
+    const a = anchorAt(e.clientX, e.clientY);
+    if (a) {
+      S.prev = a;
       S.msg = "Konumu kontrol et, uygunsa 'Onayla'ya bas.";
     } else {
       S.prev = null;
