@@ -269,10 +269,11 @@
     return availablePieces(p).some(pc => anyFit(pc.len));
   }
 
-  function fullLineExists() {
+  // Satır ya da sütun tamamen bu oyuncunun kendi rengiyle dolu mu?
+  function ownLineExists(p) {
     for (let i = 0; i < N; i++) {
-      if (S.board[i].every(v => v !== -1)) return true;
-      if (S.board.every(row => row[i] !== -1)) return true;
+      if (S.board[i].every(v => v === p)) return true;
+      if (S.board.every(row => row[i] === p)) return true;
     }
     return false;
   }
@@ -325,10 +326,10 @@
     S.sel = null;
     S.prev = null;
 
-    if (fullLineExists()) {
+    if (ownLineExists(S.cur)) {
       S.over = true;
       S.winner = S.cur;
-      S.msg = `${NAMES[S.cur]} bir satır ya da sütunu tamamen kapattı ve kazandı!`;
+      S.msg = `${NAMES[S.cur]} bir satırı ya da sütunu kendi rengiyle tamamen kapattı ve kazandı!`;
     } else {
       advance();
     }
