@@ -199,7 +199,7 @@
 
 <script>
   const N = 6;
-  const LENGTHS = [2, 2, 2, 3, 3, 3, 4, 4, 4];
+  const LENGTHS = [1, 2, 3];   // çubuk türleri; her oyuncu her türden sınırsız kullanır
   const NAMES = ['Oyuncu 1', 'Oyuncu 2'];
   const COLORS = ['p0', 'p1'];
 
@@ -226,7 +226,6 @@
   function newGame() {
     S = {
       board: Array.from({ length: N }, () => Array(N).fill(-1)),
-      pieces: [0, 1].map(() => LENGTHS.map((len, id) => ({ id, len, used: false }))),
       cur: 0,
       sel: null,      // seçili çubuğun id'si
       dir: 'h',       // 'h' yatay, 'v' dikey
@@ -239,7 +238,7 @@
   }
 
   function availablePieces(p) {
-    return S.pieces[p].filter(pc => !pc.used);
+    return LENGTHS.map((len, id) => ({ id, len }));
   }
 
   function cellsFor(r, c, dir, len) {
@@ -269,6 +268,17 @@
     return availablePieces(p).some(pc => anyFit(pc.len));
   }
 
+  // Bu oyuncu için hâlâ tamamlanabilecek bir satır ya da sütun var mı?
+  // (İçinde rakibin rengi olan satır/sütun kimse için artık tamamlanamaz.)
+  function canStillWin(p) {
+    const ok = v => v === -1 || v === p;
+    for (let i = 0; i < N; i++) {
+      if (S.board[i].every(ok)) return true;
+      if (S.board.every(row => ok(row[i]))) return true;
+    }
+    return false;
+  }
+
   // Satır ya da sütun tamamen bu oyuncunun kendi rengiyle dolu mu?
   function ownLineExists(p) {
     for (let i = 0; i < N; i++) {
@@ -289,7 +299,7 @@
   }
 
   function selectedLen() {
-    return S.pieces[S.cur][S.sel].len;
+    return LENGTHS[S.sel];
   }
 
   function rotate() {
@@ -315,14 +325,13 @@
   }
 
   function place(r, c) {
-    const pc = S.pieces[S.cur][S.sel];
-    const cells = fits(r, c, S.dir, pc.len);
+    const len = LENGTHS[S.sel];
+    const cells = fits(r, c, S.dir, len);
     if (!cells) {
       S.msg = 'Çubuk buraya sığmıyor.';
       return render();
     }
     cells.forEach(([rr, cc]) => { S.board[rr][cc] = S.cur; });
-    pc.used = true;
     S.sel = null;
     S.prev = null;
 
@@ -337,6 +346,12 @@
   }
 
   function advance() {
+    if (!canStillWin(0) && !canStillWin(1)) {
+      S.over = true;
+      S.winner = -1;
+      S.msg = 'Artık hiçbir satır ya da sütun kimsenin rengiyle tamamlanamaz. Berabere!';
+      return;
+    }
     const other = 1 - S.cur;
     if (canMove(other)) {
       S.cur = other;
@@ -478,8 +493,7 @@
       const active = !S.over && S.cur === p;
       el.classList.toggle('active', active);
       el.classList.toggle('inactive', !active);
-      el.querySelector('.left').textContent =
-        `${S.pieces[p].filter(pc => !pc.used).length} çubuk kaldı`;
+      el.querySelector('.left').textContent = 'Sınırsız çubuk';
       el.querySelector('.cover').textContent = S.over ? 'Oyun bitti' : 'Sıra rakipte';
 
       const tray = el.querySelector('.tray');
@@ -548,7 +562,7 @@
   });
 
   document.getElementById('new').addEventListener('click', () => {
-    const started = S.pieces.some(ps => ps.some(p => p.used));
+    const started = S.board.some(row => row.some(v => v !== -1));
     if (!S.over && started && !confirm('Mevcut oyun silinsin mi?')) return;
     newGame();
   });
